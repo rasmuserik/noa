@@ -12,7 +12,7 @@ var noaEngine = require('../..')
 var opts = {
 	inverseY: true,
 	chunkSize: 32,
-	chunkAddDistance: 2,
+	chunkAddDistance: 1,
 	chunkRemoveDistance: 3,
 	blockTestDistance: 50,
 	texturePath: 'textures/',
@@ -21,8 +21,9 @@ var opts = {
 	playerWidth: 0.6,
 	playerAutoStep: true,
 	useAO: true,
-	AOmultipliers: [0.92, 0.8, 0.5],
+	AOmultipliers: [0.9, 0.6, 0.3],
 	reverseAOmultiplier: 1.0,
+	initialCameraZoom: 10,
 }
 
 
@@ -70,7 +71,7 @@ noa.registry.registerMesh('customMesh', mesh, null)
 
 // add a listener for when the engine requests a new world chunk
 // `data` is an ndarray - see https://github.com/scijs/ndarray
-noa.world.on('worldDataNeeded', function(id, data, x, y, z) {
+noa.world.on('worldDataNeeded', function (id, data, x, y, z) {
 	// populate ndarray with world data (block IDs or 0 for air)
 	for (var i = 0; i < data.shape[0]; ++i) {
 		for (var k = 0; k < data.shape[2]; ++k) {
@@ -87,6 +88,7 @@ noa.world.on('worldDataNeeded', function(id, data, x, y, z) {
 
 // worldgen - return a heightmap for a given [x,z]
 function getHeightMap(x, z) {
+	if (Math.abs(x) < 5 && Math.abs(z) < 5) return 1
 	var xs = 0.8 + 2 * Math.sin(x / 10)
 	var zs = 0.4 + 2 * Math.sin(z / 15 + x / 30)
 	return xs + zs
@@ -94,9 +96,9 @@ function getHeightMap(x, z) {
 
 function decideBlock(x, y, z, height) {
 	// flat area to NE
-	if (x > 0 && z > 0) {
+	if (x > 1 && z > 1) {
 		var h = 1
-		if (z==63 || x==63) h = 20
+		if (z == 63 || x == 63) h = 20
 		return (y < h) ? grassID : 0
 	}
 	// general stuff
@@ -109,7 +111,7 @@ function decideBlock(x, y, z, height) {
 
 
 
-setTimeout(function() {
+setTimeout(function () {
 	addWorldFeatures()
 }, 1000)
 
@@ -117,19 +119,19 @@ function addWorldFeatures() {
 	noa.setBlock(testID1, -6, 5, 6)
 	noa.setBlock(testID2, -4, 5, 6)
 	noa.setBlock(testID3, -2, 5, 6)
-	
+
 	var z = 5
 	makeRows(10, 5, z, dirtID)
-	makeRows(10, 5, z+2, dirtID)
-	makeRows(10, 5, z+5, dirtID)
-	makeRows(10, 5, z+9, dirtID)
-	makeRows(10, 5, z+14, dirtID)
+	makeRows(10, 5, z + 2, dirtID)
+	makeRows(10, 5, z + 5, dirtID)
+	makeRows(10, 5, z + 9, dirtID)
+	makeRows(10, 5, z + 14, dirtID)
 	z += 18
 	makeRows(10, 5, z, customID)
-	makeRows(10, 5, z+2, customID)
-	makeRows(10, 5, z+5, customID)
-	makeRows(10, 5, z+9, customID)
-	makeRows(10, 5, z+14, customID)
+	makeRows(10, 5, z + 2, customID)
+	makeRows(10, 5, z + 5, customID)
+	makeRows(10, 5, z + 9, customID)
+	makeRows(10, 5, z + 14, customID)
 }
 
 function makeRows(length, x, z, block) {
@@ -171,20 +173,20 @@ noa.entities.addComponent(eid, noa.entities.names.mesh, {
 
 
 // on left mouse, set targeted block to be air
-noa.inputs.down.on('fire', function() {
+noa.inputs.down.on('fire', function () {
 	var loc = noa.getTargetBlockPosition()
 	if (loc) noa.setBlock(0, loc);
 })
 
 // place block on alt-fire (RMB/E)
-noa.inputs.down.on('alt-fire', function() {
+noa.inputs.down.on('alt-fire', function () {
 	var loc = noa.getTargetBlockAdjacent()
 	if (loc) noa.addBlock(pickedID, loc);
 })
 var pickedID = grassID
 
 // pick block on middle fire (MMB/Q)
-noa.inputs.down.on('mid-fire', function() {
+noa.inputs.down.on('mid-fire', function () {
 	var loc = noa.getTargetBlockPosition()
 	if (loc) pickedID = noa.getBlock(loc)
 })
@@ -192,7 +194,7 @@ noa.inputs.down.on('mid-fire', function() {
 
 // each tick, consume any scroll events and use them to zoom camera
 var zoom = 0
-noa.on('tick', function(dt) {
+noa.on('tick', function (dt) {
 	var scroll = noa.inputs.state.scrolly
 	if (scroll === 0) return
 	noa.inputs.state.scrolly = 0
