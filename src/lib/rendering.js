@@ -1,4 +1,17 @@
 'use strict'
+import { Scene } from "@babylonjs/core/scene";
+import { FreeCamera } from "@babylonjs/core/Cameras/freeCamera";
+import { Octree } from "@babylonjs/core/Culling/Octrees/octree";
+import { OctreeBlock } from "@babylonjs/core/Culling/Octrees/octreeBlock";
+import { Engine } from "@babylonjs/core/Engines/engine";
+import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
+import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
+import { Vector3, Axis, Color3 } from "@babylonjs/core/Maths/math";
+import { Mesh } from "@babylonjs/core/Meshes/mesh";
+import "@babylonjs/core/Meshes/meshBuilder";
+
+
+
 
 var glvec3 = require('gl-vec3')
 var aabb = require('aabb-3d')
@@ -6,17 +19,12 @@ var sweep = require('voxel-aabb-sweep')
 var removeUnorderedListItem = require('./util').removeUnorderedListItem
 
 
-// For now, assume Babylon.js has been imported into the global space already
-if (!BABYLON) {
-    throw new Error('Babylon.js reference not found! Abort! Abort!')
-}
-
 module.exports = function (noa, opts, canvas) {
     return new Rendering(noa, opts, canvas)
 }
 
-var vec3 = BABYLON.Vector3 // not a gl-vec3, in this module only!!
-var col3 = BABYLON.Color3
+var vec3 = Vector3 // not a gl-vec3, in this module only!!
+var col3 = Color3
 
 
 
@@ -78,33 +86,32 @@ function Rendering(noa, opts, canvas) {
 
 // Constructor helper - set up the Babylon.js scene and basic components
 function initScene(self, canvas, opts) {
-    if (!BABYLON) throw new Error('BABYLON.js engine not found!')
 
     // init internal properties
-    self._engine = new BABYLON.Engine(canvas, opts.antiAlias, {
+    self._engine = new Engine(canvas, opts.antiAlias, {
         preserveDrawingBuffer: opts.preserveDrawingBuffer,
     })
-    self._scene = new BABYLON.Scene(self._engine)
+    self._scene = new Scene(self._engine)
     var scene = self._scene
     // remove built-in listeners
     scene.detachControl()
 
     // octree setup
-    self._octree = new BABYLON.Octree($ => {})
+    self._octree = new Octree($ => {})
     self._octree.blocks = []
     scene._selectionOctree = self._octree
 
     // camera, and empty mesh to hold it, and one to accumulate rotations
-    self._rotationHolder = new BABYLON.Mesh('rotHolder', scene)
-    self._cameraHolder = new BABYLON.Mesh('camHolder', scene)
-    self._camera = new BABYLON.FreeCamera('camera', new vec3(0, 0, 0), scene)
+    self._rotationHolder = new Mesh('rotHolder', scene)
+    self._cameraHolder = new Mesh('camHolder', scene)
+    self._camera = new FreeCamera('camera', new vec3(0, 0, 0), scene)
     self._camera.parent = self._cameraHolder
     self._camera.minZ = .01
     self._cameraHolder.visibility = false
     self._rotationHolder.visibility = false
 
     // plane obscuring the camera - for overlaying an effect on the whole view
-    self._camScreen = BABYLON.Mesh.CreatePlane('camScreen', 10, scene)
+    self._camScreen = Mesh.CreatePlane('camScreen', 10, scene)
     self.addMeshToScene(self._camScreen)
     self._camScreen.position.z = .1
     self._camScreen.parent = self._camera
@@ -114,7 +121,7 @@ function initScene(self, canvas, opts) {
     self._camLocBlock = 0
 
     // apply some defaults
-    self._light = new BABYLON.HemisphericLight('light', new vec3(0.1, 1, 0.3), scene)
+    self._light = new HemisphericLight('light', new vec3(0.1, 1, 0.3), scene)
 
     function arrToColor(a) { return new col3(a[0], a[1], a[2]) }
     scene.clearColor = arrToColor(opts.clearColor)
@@ -210,7 +217,7 @@ var _highlightPos = glvec3.create()
 
 /** @method */
 Rendering.prototype.getCameraVector = function () {
-    return vec3.TransformCoordinates(BABYLON.Axis.Z, this._rotationHolder.getWorldMatrix())
+    return vec3.TransformCoordinates(Axis.Z, this._rotationHolder.getWorldMatrix())
 }
 var zero = vec3.Zero()
 /** @method */
@@ -324,7 +331,7 @@ Rendering.prototype.makeMeshInstance = function (mesh, isStatic) {
 // Create a default standardMaterial:
 //      flat, nonspecular, fully reflects diffuse and ambient light
 Rendering.prototype.makeStandardMaterial = function (name) {
-    var mat = new BABYLON.StandardMaterial(name, this._scene)
+    var mat = new StandardMaterial(name, this._scene)
     mat.specularColor.copyFromFloats(0, 0, 0)
     mat.ambientColor.copyFromFloats(1, 1, 1)
     mat.diffuseColor.copyFromFloats(1, 1, 1)
@@ -349,7 +356,7 @@ Rendering.prototype.prepareChunkForRendering = function (chunk) {
     var cs = chunk.size
     var min = new vec3(chunk.x, chunk.y, chunk.z)
     var max = new vec3(chunk.x + cs, chunk.y + cs, chunk.z + cs)
-    chunk.octreeBlock = new BABYLON.OctreeBlock(min, max, undefined, undefined, undefined, $ => {})
+    chunk.octreeBlock = new OctreeBlock(min, max, undefined, undefined, undefined, $ => {})
     this._octree.blocks.push(chunk.octreeBlock)
 }
 
@@ -486,7 +493,7 @@ function checkCameraEffect(self, id) {
 function getHighlightMesh(rendering) {
     var m = rendering._highlightMesh
     if (!m) {
-        var mesh = BABYLON.Mesh.CreatePlane("highlight", 1.0, rendering._scene)
+        var mesh = Mesh.CreatePlane("highlight", 1.0, rendering._scene)
         var hlm = rendering.makeStandardMaterial('highlightMat')
         hlm.backFaceCulling = false
         hlm.emissiveColor = new col3(1, 1, 1)
@@ -495,7 +502,7 @@ function getHighlightMesh(rendering) {
         m = rendering._highlightMesh = mesh
         // outline
         var s = 0.5
-        var lines = BABYLON.Mesh.CreateLines("hightlightLines", [
+        var lines = Mesh.CreateLines("hightlightLines", [
             new vec3(s, s, 0),
             new vec3(s, -s, 0),
             new vec3(-s, -s, 0),

@@ -1,4 +1,6 @@
 'use strict'
+import { SolidParticleSystem } from "@babylonjs/core/Particles/solidParticleSystem";
+
 
 
 var removeUnorderedListItem = require('./util').removeUnorderedListItem
@@ -152,7 +154,7 @@ function ObjectMesher() {
     function buildSPSforMaterialIndex(chunk, scene, meshHash, x0, y0, z0) {
         var blockHash = chunk._objectBlocks
         // base sps
-        var sps = new BABYLON.SolidParticleSystem('object_sps_' + chunk.id, scene, {
+        var sps = new SolidParticleSystem('object_sps_' + chunk.id, scene, {
             updatable: false,
         })
 
